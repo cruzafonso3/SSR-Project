@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-enum ButtonEvent { EVT_NONE, EVT_UP, EVT_DOWN, EVT_SELECT };
+enum ButtonEvent { EVT_NONE, EVT_UP, EVT_DOWN, EVT_SELECT, EVT_BACK };
 
 void inputInit();
 ButtonEvent inputGetEvent();

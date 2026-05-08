@@ -1,8 +1,8 @@
 #include "dns_utils.h"
 #include "packet_utils.h"
 
-extern IPAddress SPOOFED_IP;
-extern char TARGET_DOMAIN_STR[];
+extern IPAddress g_spoofed_ip;
+extern char g_target_domain[];
 
 bool parseDnsQueryDomain(const uint8_t* dnsData, uint16_t dnsLen,
                          char* out, uint8_t outLen) {
@@ -61,8 +61,8 @@ void sendDnsResponse(const uint8_t* originalIpPkt, const uint8_t* originalUdpPkt
     dnsResp[ansOffset++] = 0x00; dnsResp[ansOffset++] = 0x00;
     dnsResp[ansOffset++] = 0x01; dnsResp[ansOffset++] = 0x2C;
     dnsResp[ansOffset++] = 0x00; dnsResp[ansOffset++] = 0x04;
-    dnsResp[ansOffset++] = SPOOFED_IP[0]; dnsResp[ansOffset++] = SPOOFED_IP[1];
-    dnsResp[ansOffset++] = SPOOFED_IP[2]; dnsResp[ansOffset++] = SPOOFED_IP[3];
+    dnsResp[ansOffset++] = g_spoofed_ip[0]; dnsResp[ansOffset++] = g_spoofed_ip[1];
+    dnsResp[ansOffset++] = g_spoofed_ip[2]; dnsResp[ansOffset++] = g_spoofed_ip[3];
     
     uint16_t dnsRespLen = ansOffset;
     uint16_t udpTotalLen = 8 + dnsRespLen;

@@ -4,7 +4,7 @@
 
 extern uint8_t g_esp32_mac[6];
 extern uint8_t g_bssid[6];
-extern uint8_t VICTIM_MAC[6];
+extern uint8_t g_victim_mac[6];
 
 static bool dhcpRunning = false;
 static int dhcpCounter = 0;
@@ -68,7 +68,7 @@ static void sendDhcpReply(const uint8_t* clientMac, uint32_t xid, uint8_t msgTyp
     udpHdr[4] = (udpLen >> 8) & 0xFF; udpHdr[5] = udpLen & 0xFF;
     udpHdr[6] = 0x00; udpHdr[7] = 0x00;
     
-    inject80211(VICTIM_MAC, g_esp32_mac, g_bssid, LLC_SNAP_IP, ipHdr, ipTotalLen);
+    inject80211(g_victim_mac, g_esp32_mac, g_bssid, LLC_SNAP_IP, ipHdr, ipTotalLen);
 }
 
 void dhcpProcessPacket(const uint8_t* ipPkt, const uint8_t* udpPkt, const uint8_t* dhcpData, uint16_t dhcpLen) {
