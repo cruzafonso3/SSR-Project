@@ -3,7 +3,7 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <SPIFFS.h>
-#include <esp_wifi.h>
+#include <esp_wifi.h>a
 
 // --- CONFIGURATION ---
 typedef struct {
@@ -262,7 +262,7 @@ void setup() {
   esp_wifi_set_country(&country);
   // ---------------------------------------------
   
-  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0)); WiFi.softAP("WiFi_Pentest", "password123");
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0)); WiFi.softAP("RogueAP", "password123");
   dnsServer.start(DNS_PORT, "*", apIP);
   
   // ADMIN ROUTES
