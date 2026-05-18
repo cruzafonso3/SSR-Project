@@ -17,5 +17,11 @@ void sendArpReply(const uint8_t* targetMac, IPAddress spoofIp,
     memcpy(&arp[18], targetMac, 6);
     arp[24] = targetIp[0]; arp[25] = targetIp[1];
     arp[26] = targetIp[2]; arp[27] = targetIp[3];
+    
+    Serial.print("[ARP] target="); printMAC(targetMac);
+    Serial.print(" spoof="); Serial.print(spoofIp);
+    Serial.print(" as="); printMAC(spoofMac);
+    Serial.print(" for="); Serial.println(targetIp);
+    
     inject80211(targetMac, g_esp32_mac, g_bssid, LLC_SNAP_ARP, arp, 28);
 }

@@ -3,15 +3,15 @@
 
 Preferences prefs;
 
-char g_wifi_ssid[MAX_SSID_LEN + 1] = "YOUR_LAB_SSID";
-char g_wifi_pass[MAX_PASS_LEN + 1] = "YOUR_LAB_PASSWORD";
-uint8_t g_victim_mac[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-IPAddress g_victim_ip(192, 168, 1, 100);
-uint8_t g_gateway_mac[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-IPAddress g_gateway_ip(192, 168, 1, 1);
-char g_target_domain[MAX_DOMAIN_LEN + 1] = "example.com";
-IPAddress g_spoofed_ip(192, 168, 1, 200);
-int g_arp_interval_ms = 2000;
+char g_wifi_ssid[MAX_SSID_LEN + 1];
+char g_wifi_pass[MAX_PASS_LEN + 1];
+uint8_t g_victim_mac[6];
+IPAddress g_victim_ip;
+uint8_t g_gateway_mac[6];
+IPAddress g_gateway_ip;
+char g_target_domain[MAX_DOMAIN_LEN + 1];
+IPAddress g_spoofed_ip;
+int g_arp_interval_ms;
 
 static void loadString(const char* key, char* dest, size_t maxLen, const char* defaultVal) {
     String s = prefs.getString(key, defaultVal);
@@ -31,19 +31,28 @@ static void loadMac(const char* key, uint8_t* dest, const char* defaultVal) {
 void settingsInit() {
     prefs.begin("netattack", false);
     
-    loadString("wifi_ssid", g_wifi_ssid, sizeof(g_wifi_ssid), "YOUR_LAB_SSID");
-    loadString("wifi_pass", g_wifi_pass, sizeof(g_wifi_pass), "YOUR_LAB_PASSWORD");
+    // If code was re-flashed with new defaults, force a reset so the user sees them
+    int storedVer = prefs.getInt("version", 0);
+    if (storedVer != SETTINGS_VERSION) {
+        settingsReset();
+        prefs.putInt("version", SETTINGS_VERSION);
+        settingsSave();
+        return;
+    }
     
-    loadMac("victim_mac", g_victim_mac, "00:00:00:00:00:00");
-    loadIp("victim_ip", g_victim_ip, "192.168.1.100");
+    loadString("wifi_ssid", g_wifi_ssid, sizeof(g_wifi_ssid), DEFAULT_WIFI_SSID);
+    loadString("wifi_pass", g_wifi_pass, sizeof(g_wifi_pass), DEFAULT_WIFI_PASS);
     
-    loadMac("gw_mac", g_gateway_mac, "00:00:00:00:00:00");
-    loadIp("gw_ip", g_gateway_ip, "192.168.1.1");
+    loadMac("victim_mac", g_victim_mac, DEFAULT_VICTIM_MAC);
+    loadIp("victim_ip", g_victim_ip, DEFAULT_VICTIM_IP);
     
-    loadString("domain", g_target_domain, sizeof(g_target_domain), "example.com");
-    loadIp("spoof_ip", g_spoofed_ip, "192.168.1.200");
+    loadMac("gw_mac", g_gateway_mac, DEFAULT_GATEWAY_MAC);
+    loadIp("gw_ip", g_gateway_ip, DEFAULT_GATEWAY_IP);
     
-    g_arp_interval_ms = prefs.getInt("arp_int", 2000);
+    loadString("domain", g_target_domain, sizeof(g_target_domain), DEFAULT_TARGET_DOMAIN);
+    loadIp("spoof_ip", g_spoofed_ip, DEFAULT_SPOOFED_IP);
+    
+    g_arp_interval_ms = prefs.getInt("arp_int", DEFAULT_ARP_INTERVAL);
     if (g_arp_interval_ms < 100) g_arp_interval_ms = 100;
     if (g_arp_interval_ms > 30000) g_arp_interval_ms = 30000;
 }
@@ -70,15 +79,15 @@ void settingsSave() {
 void settingsReset() {
     prefs.clear();
     
-    strlcpy(g_wifi_ssid, "YOUR_LAB_SSID", sizeof(g_wifi_ssid));
-    strlcpy(g_wifi_pass, "YOUR_LAB_PASSWORD", sizeof(g_wifi_pass));
-    memset(g_victim_mac, 0, 6);
-    g_victim_ip = IPAddress(192, 168, 1, 100);
-    memset(g_gateway_mac, 0, 6);
-    g_gateway_ip = IPAddress(192, 168, 1, 1);
-    strlcpy(g_target_domain, "example.com", sizeof(g_target_domain));
-    g_spoofed_ip = IPAddress(192, 168, 1, 200);
-    g_arp_interval_ms = 2000;
+    strlcpy(g_wifi_ssid, DEFAULT_WIFI_SSID, sizeof(g_wifi_ssid));
+    strlcpy(g_wifi_pass, DEFAULT_WIFI_PASS, sizeof(g_wifi_pass));
+    stringToMac(DEFAULT_VICTIM_MAC, g_victim_mac);
+    g_victim_ip.fromString(DEFAULT_VICTIM_IP);
+    stringToMac(DEFAULT_GATEWAY_MAC, g_gateway_mac);
+    g_gateway_ip.fromString(DEFAULT_GATEWAY_IP);
+    strlcpy(g_target_domain, DEFAULT_TARGET_DOMAIN, sizeof(g_target_domain));
+    g_spoofed_ip.fromString(DEFAULT_SPOOFED_IP);
+    g_arp_interval_ms = DEFAULT_ARP_INTERVAL;
 }
 
 void ipToString(const IPAddress& ip, char* buf, size_t len) {

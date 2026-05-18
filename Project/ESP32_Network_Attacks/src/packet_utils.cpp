@@ -10,7 +10,7 @@ bool inject80211(const uint8_t* addr3_dest, const uint8_t* addr2_src,
     uint8_t buffer[512];
     uint16_t totalLen = DOT11_DATA_HDR_LEN + LLC_SNAP_LEN + payload_len;
     if (totalLen > sizeof(buffer)) return false;
-    buffer[0] = 0x02; buffer[1] = 0x01;
+    buffer[0] = 0x08; buffer[1] = 0x01;
     buffer[2] = 0x00; buffer[3] = 0x00;
     memcpy(&buffer[4], addr1_bssid, 6);
     memcpy(&buffer[10], addr2_src, 6);
@@ -18,7 +18,17 @@ bool inject80211(const uint8_t* addr3_dest, const uint8_t* addr2_src,
     buffer[22] = 0x00; buffer[23] = 0x00;
     memcpy(&buffer[24], llc_snap, 8);
     memcpy(&buffer[32], payload, payload_len);
-    return esp_wifi_80211_tx(WIFI_IF_STA, buffer, totalLen, true) == ESP_OK;
+    
+    Serial.print("[inject80211] fc=");
+    Serial.print(buffer[0], HEX); Serial.print(" "); Serial.print(buffer[1], HEX);
+    Serial.print(" dest="); printMAC(addr3_dest);
+    Serial.print(" src="); printMAC(addr2_src);
+    Serial.print(" bssid="); printMAC(addr1_bssid);
+    
+    esp_err_t err = esp_wifi_80211_tx(WIFI_IF_STA, buffer, totalLen, true);
+    Serial.print(" result=");
+    Serial.println(err == ESP_OK ? "OK" : "FAIL");
+    return err == ESP_OK;
 }
 
 uint16_t ipChecksum(const uint8_t* data, uint16_t len) {
@@ -38,5 +48,4 @@ void printMAC(const uint8_t* mac) {
         if (mac[i] < 0x10) Serial.print("0");
         Serial.print(mac[i], HEX);
     }
-    Serial.println();
 }

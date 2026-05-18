@@ -325,7 +325,7 @@ static void renderIpEditor() {
     
     displayDrawStr(0, 40, "UP/DN: change");
     displayDrawStr(0, 50, "SEL: next");
-    displayDrawStr(0, 60, "LONG: cancel");
+    displayDrawStr(0, 60, "DBL SEL: back");
     displaySendBuffer();
 }
 
@@ -352,7 +352,7 @@ static void renderMacEditor() {
     }
     displayDrawStr(0, 40, "UP/DN: change");
     displayDrawStr(0, 50, "SEL: next");
-    displayDrawStr(0, 60, "LONG: cancel");
+    displayDrawStr(0, 60, "DBL SEL: back");
     displaySendBuffer();
 }
 
@@ -365,7 +365,7 @@ static void renderIntEditor() {
     drawCenteredStr(30, buf);
     displayDrawStr(0, 40, "UP/DN: change");
     displayDrawStr(0, 50, "SEL: save");
-    displayDrawStr(0, 60, "LONG: cancel");
+    displayDrawStr(0, 60, "DBL SEL: back");
     displaySendBuffer();
 }
 
@@ -392,7 +392,7 @@ static void renderStringEditor() {
     
     displayDrawStr(0, 40, "UP/DN: char");
     displayDrawStr(0, 50, "SEL: add");
-    displayDrawStr(0, 60, "LONG: cancel");
+    displayDrawStr(0, 60, "DBL SEL: back");
     displaySendBuffer();
 }
 

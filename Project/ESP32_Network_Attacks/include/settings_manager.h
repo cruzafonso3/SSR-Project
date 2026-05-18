@@ -8,6 +8,21 @@
 #define MAX_PASS_LEN 64
 #define MAX_DOMAIN_LEN 64
 
+// ========== FACTORY DEFAULTS ==========
+// Change these before flashing if you want different startup values.
+// They will appear in the Settings menu on first boot or after Factory Reset.
+#define DEFAULT_WIFI_SSID     "Cruz"
+#define DEFAULT_WIFI_PASS     "passemaluca!!!"
+#define DEFAULT_VICTIM_IP     "172.20.10.3"
+#define DEFAULT_VICTIM_MAC    "E0:D4:64:C2:C5:54"
+#define DEFAULT_GATEWAY_IP    "172.20.10.1"
+#define DEFAULT_GATEWAY_MAC   "F6:52:93:84:2E:64"
+#define DEFAULT_TARGET_DOMAIN "example.com"
+#define DEFAULT_SPOOFED_IP    "192.168.1.200"
+#define DEFAULT_ARP_INTERVAL  2000
+#define SETTINGS_VERSION      1   // Bump to force a reset to defaults on flash
+// ======================================
+
 extern char g_wifi_ssid[MAX_SSID_LEN + 1];
 extern char g_wifi_pass[MAX_PASS_LEN + 1];
 extern uint8_t g_victim_mac[6];
