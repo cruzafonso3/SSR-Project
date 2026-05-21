@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define AP_IP_ADDR          IPAddress(192, 168, 4, 1)
+#define AP_IP_ADDR          IPAddress(192, 168, 4, 1) // 192.168.4.1
 #define AP_SUBNET           IPAddress(255, 255, 255, 0)
 #define DNS_PORT            53
 

