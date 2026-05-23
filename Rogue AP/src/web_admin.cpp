@@ -45,12 +45,30 @@ static String renderNetworkTable(const std::vector<NetworkRecord>& networks,
         if (activeTarget.bssidString == net.bssidString) {
             html += "<button disabled class='btn success'>Selected</button>";
         } else {
-            html += "<button class='btn'>Select</button>";
+            html += "<button type='button' class='btn' onclick='openPasswordModal(\"" + net.ssid + "\", \"" + net.bssidString + "\")'>Select</button>";
         }
         html += "</form></td></tr>";
     }
 
     html += "</table></div></div>";
+
+    html += "<div id='passwordModal' class='modal'>";
+    html += "<div class='modal-content'>";
+    html += "<span class='close' onclick='closePasswordModal()'>&times;</span>";
+    html += "<h3 id='modalSsid'></h3>";
+    html += "<form method='post' action='/select' id='selectForm'>";
+    html += "<input type='hidden' name='bssid' id='modalBssid'>";
+    html += "<label>WiFi Password (leave empty for open AP):</label>";
+    html += "<div class='password-wrapper'>";
+    html += "<input type='password' name='password' id='modalPassword' placeholder='Enter target network password'>";
+    html += "<button type='button' class='toggle-pw' onclick='togglePassword()'>&#128065;</button>";
+    html += "</div>";
+    html += "<div class='modal-btns'>";
+    html += "<button type='submit' class='btn success'>Confirm & Select</button>";
+    html += "<button type='button' class='btn secondary' onclick='closePasswordModal()'>Cancel</button>";
+    html += "</div>";
+    html += "</form></div></div>";
+
     return html;
 }
 
@@ -89,6 +107,25 @@ void serveAdminPanel(WebServer& server, const std::vector<NetworkRecord>& networ
         html += "<script>setTimeout(()=>location.reload(),5000);</script>";
     }
 
+    html += "<script>";
+    html += "function openPasswordModal(ssid, bssid) {";
+    html += "  document.getElementById('modalSsid').textContent = 'Select: ' + ssid;";
+    html += "  document.getElementById('modalBssid').value = bssid;";
+    html += "  document.getElementById('modalPassword').value = '';";
+    html += "  document.getElementById('passwordModal').style.display = 'block';";
+    html += "}";
+    html += "function closePasswordModal() {";
+    html += "  document.getElementById('passwordModal').style.display = 'none';";
+    html += "}";
+    html += "function togglePassword() {";
+    html += "  var pw = document.getElementById('modalPassword');";
+    html += "  pw.type = pw.type === 'password' ? 'text' : 'password';";
+    html += "}";
+    html += "window.onclick = function(e) {";
+    html += "  if (e.target == document.getElementById('passwordModal')) closePasswordModal();";
+    html += "}";
+    html += "</script>";
+
     html += FPSTR(FOOTER_HTML);
     server.send(200, "text/html", html);
 }
@@ -106,9 +143,11 @@ void handleScanRequest(WebServer& server) {
 void handleNetworkSelect(WebServer& server, std::vector<NetworkRecord>& networks,
                          NetworkRecord& activeTarget) {
     String bssid = server.arg("bssid");
+    String password = server.arg("password");
     for (const auto& net : networks) {
         if (net.bssidString == bssid) {
             activeTarget = net;
+            activeTarget.password = password;
             break;
         }
     }

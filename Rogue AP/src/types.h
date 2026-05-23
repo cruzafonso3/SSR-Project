@@ -8,6 +8,7 @@ struct NetworkRecord {
     uint8_t channel;
     uint8_t bssid[6];
     String bssidString;
+    String password;
 };
 
 struct AttackProfile {

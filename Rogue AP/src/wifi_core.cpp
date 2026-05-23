@@ -29,7 +29,7 @@ void scanNearbyNetworks(std::vector<NetworkRecord>& results) {
     WiFi.scanDelete();
 }
 
-bool launchRogueAP(const NetworkRecord& target, IPAddress apIp) {
+bool launchRogueAP(const NetworkRecord& target, const String& password, IPAddress apIp) {
     if (target.ssid.isEmpty()) return false;
 
     WiFi.softAPdisconnect(true);
@@ -37,9 +37,15 @@ bool launchRogueAP(const NetworkRecord& target, IPAddress apIp) {
 
     WiFi.softAPConfig(apIp, apIp, AP_SUBNET);
 
-    bool success = WiFi.softAP(target.ssid.c_str(), NULL, target.channel);
+    bool success;
+    if (password.length() >= 8) {
+        success = WiFi.softAP(target.ssid.c_str(), password.c_str(), target.channel);
+        Serial.println("[INFO] Rogue AP started (WPA2): " + target.ssid);
+    } else {
+        success = WiFi.softAP(target.ssid.c_str(), NULL, target.channel);
+        Serial.println("[INFO] Rogue AP started (Open): " + target.ssid);
+    }
     if (success) {
-        Serial.println("[INFO] Rogue AP started: " + target.ssid);
         Serial.println("[INFO] Waiting for connections...");
     } else {
         Serial.println("[ERROR] Failed to start rogue AP, falling back to default");

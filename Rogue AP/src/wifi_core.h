@@ -10,7 +10,7 @@
 
 void configureCountryRegion();
 void scanNearbyNetworks(std::vector<NetworkRecord>& results);
-bool launchRogueAP(const NetworkRecord& target, IPAddress apIp);
+bool launchRogueAP(const NetworkRecord& target, const String& password, IPAddress apIp);
 void haltRogueAP();
 uint8_t getConnectedClientCount();
 const char* getDefaultSSID();

@@ -5,9 +5,9 @@
 #include <WebServer.h>
 #include "types.h"
 
-void serveCaptivePortal(WebServer& server, bool isRogueApRunning);
+void serveCaptivePortal(WebServer& server, bool isRogueApRunning, bool hasPassword, const String& ssid);
 void processCredentialCapture(WebServer& server, const String& currentRogueSsid);
-String buildCaptivePortalPage(const AttackProfile& config);
+String buildCaptivePortalPage(const AttackProfile& config, bool hasPassword, const String& ssid);
 void sendSuccessRedirect(WebServer& server);
 
 #endif

