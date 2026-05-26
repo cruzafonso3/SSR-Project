@@ -77,6 +77,87 @@ On first flash, the build version hash (`__DATE__ __TIME__`) is saved to NVS. Ev
 
 Full command set available over USB serial at 115200 baud alongside the OLED interface.
 
+## Performing the Attack
+
+### Step 1 — Find target info on the laptop
+
+On the laptop you want to intercept (the **victim**), find its IP, its MAC, the gateway IP, and the gateway MAC:
+
+```bash
+ip addr show              # look for your IP under your Wi-Fi interface
+ip link show              # look for your MAC address
+ip route show default     # this is your gateway IP
+iw dev wlan0 link         # the "Connected to" line is the gateway BSSID/MAC
+```
+
+### Step 2 — Configure the ESP via OLED
+
+| Menu path | What to set |
+|-----------|-------------|
+| **Settings → SSID** | The Wi-Fi network name the ESP should connect to |
+| **Settings → Password** | The Wi-Fi password |
+| **Settings → Victim IP** | The laptop's IP (from Step 1) |
+| **Settings → Victim MAC** | The laptop's MAC (from Step 1) |
+| **Settings → Gateway IP** | The gateway's IP (from Step 1) |
+| **Settings → Gateway MAC** | The gateway's BSSID (from Step 1) |
+| **Save Config** | Persist all values to NVS |
+
+### Step 3 — Connect to Wi-Fi
+
+Select **Connect WiFi** from the main menu. The OLED shows "Connecting..." and then "WiFi connected" with the assigned IP.
+
+### Step 4 — Start the attack
+
+Select **Start ARP**. The ESP now:
+- Sends ARP poison packets every cooldown interval
+- Enables promiscuous mode to intercept ARP requests (sticky poisoning)
+- Enables packet forwarding (data relay)
+
+### Step 5 — Verify on the laptop
+
+Check the ARP cache:
+
+```bash
+ip neigh show
+```
+
+The gateway IP should now point to the **ESP's MAC address**, not the real gateway's MAC. Example:
+
+```
+192.168.1.1 dev wlp3s0 lladdr a4:f0:0f:5c:66:c0 REACHABLE
+```
+
+### Step 6 — Observe traffic
+
+On the ESP's **Status** page, the packet counters increment as traffic passes through:
+
+```
+C: 100  F: 95  D: 5
+```
+
+Cap = captured, F = forwarded, D = dropped.
+
+### Optional — Toggle forwarding
+
+Select **Toggle Forwarding** to stop data relay while keeping ARP poison active. Pings stop reaching the internet immediately. The sticky ARP interception prevents cache recovery. Select it again to resume forwarding.
+
+### Using serial CLI instead of OLED
+
+Connect via serial monitor (115200 baud) and use the same commands:
+
+```
+set_ssid MyNetwork
+set_pass MyPassword
+set_target_ip 192.168.1.100
+set_target_mac aa:bb:cc:dd:ee:ff
+set_gateway_ip 192.168.1.1
+set_gateway_mac 11:22:33:44:55:66
+save
+connect
+start
+status
+```
+
 ## Build
 
 ```bash

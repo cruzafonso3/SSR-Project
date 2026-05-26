@@ -246,6 +246,75 @@ SEL/BACK: Stop
 - Pressing BACK from the main menu leaves the attack running.
 - Exiting and returning to Status shows fresh live data.
 
+## Performing the Attack
+
+### Step 1 — Configure via OLED
+
+| Menu path | What to set |
+|-----------|-------------|
+| **Settings → SSID** | The target Wi-Fi network name |
+| **Settings → Password** | The target Wi-Fi password |
+| **Settings → Cooldown** | Delay between reconnect attempts (default 500ms) |
+| **Save Config** | Persist to NVS |
+
+### Step 2 — Connect to Wi-Fi
+
+Select **Connect WiFi**. The OLED shows "Connecting..." then "WiFi connected" with the IP assigned to the ESP.
+
+### Step 3 — Start the starvation
+
+Select **Start Starvation**. The OLED switches to the live attack screen:
+
+```
+=== STARVATION ===
+RECON: 0
+IP: (connecting)
+FAIL: 0
+FULL: no
+SEL/BACK: Stop
+```
+
+The RECON count increments each time a new random MAC gets a DHCP lease. The IP shows the last address obtained.
+
+### Step 4 — Monitor pool exhaustion
+
+As the DHCP pool empties, FAIL counts consecutive failed reconnects. When it reaches 10+, the display shows:
+
+```
+=== STARVATION ===
+RECON: 42
+IP: 192.168.1.105
+FAIL: 10
+FULL: YES (10+ fails)
+SEL/BACK: Stop
+```
+
+This means the pool is likely exhausted — no more IPs available.
+
+### Step 5 — Stop
+
+Press **SELECT** or **BACK** to stop. The ESP's original MAC is restored. The attack ends.
+
+### Step 6 — Verify on the router
+
+Check the router's admin interface:
+1. **DHCP Client List** — many clients with `02:` starting MACs
+2. **DHCP Pool Usage** — near 100%
+3. Try connecting another device — it fails to get an IP
+
+### Using serial CLI instead of OLED
+
+```
+set_ssid MyNetwork
+set_pass MyPassword
+set_cooldown 500
+save
+connect
+start
+stop
+status
+```
+
 ### Auto-Reset on Reflash
 
 A build version hash (`__DATE__ __TIME__` djb2 hash) is stored in NVS. Every reflash changes the hash, triggering an automatic factory reset of all config. No stale SSIDs, passwords, or settings survive a firmware update.
