@@ -8,6 +8,7 @@ static uint8_t s_random_mac[6];
 static bool s_running = false;
 static unsigned long s_last_reconnect = 0;
 static int s_reconnect_count = 0;
+static int s_consecutive_failures = 0;
 static String s_current_ip = "";
 
 static void mac_to_str(const uint8_t* mac, char* buf) {
@@ -27,6 +28,7 @@ static void generate_random_mac() {
 void dhcp_init() {
     s_running = false;
     s_reconnect_count = 0;
+    s_consecutive_failures = 0;
     s_last_reconnect = 0;
     s_current_ip = "";
     WiFi.macAddress(s_original_mac);
@@ -40,6 +42,7 @@ void dhcp_start() {
     }
     s_running = true;
     s_reconnect_count = 0;
+    s_consecutive_failures = 0;
     s_last_reconnect = millis() - (unsigned long)g_config.cooldown_ms;
     Serial.println("[DHCP] Starvation started");
 }
@@ -79,15 +82,27 @@ void dhcp_step() {
 
     if (WiFi.status() == WL_CONNECTED) {
         s_reconnect_count++;
+        s_consecutive_failures = 0;
         s_current_ip = WiFi.localIP().toString();
         char mac_str[18];
         mac_to_str(s_random_mac, mac_str);
         Serial.printf("[DHCP] #%d IP: %s MAC: %s\n", s_reconnect_count, s_current_ip.c_str(), mac_str);
+    } else {
+        s_consecutive_failures++;
+        Serial.printf("[DHCP] #%d FAIL (consecutive: %d)\n", s_reconnect_count + 1, s_consecutive_failures);
     }
 }
 
 int dhcp_get_reconnect_count() {
     return s_reconnect_count;
+}
+
+int dhcp_get_consecutive_failures() {
+    return s_consecutive_failures;
+}
+
+bool dhcp_is_pool_full() {
+    return s_consecutive_failures >= 10;
 }
 
 String dhcp_get_current_ip() {

@@ -46,14 +46,14 @@ bool config_load() {
     strncpy(g_config.ssid, s.c_str(), sizeof(g_config.ssid) - 1);
     s = prefs.getString("pass", "");
     strncpy(g_config.password, s.c_str(), sizeof(g_config.password) - 1);
-    g_config.cooldown_ms = prefs.getInt("cooldown", 1000);
+    g_config.cooldown_ms = prefs.getInt("cooldown", 500);
     prefs.end();
     return true;
 }
 
 void config_reset() {
     memset(&g_config, 0, sizeof(g_config));
-    g_config.cooldown_ms = 1000;
+    g_config.cooldown_ms = 500;
 }
 
 bool config_validate() {

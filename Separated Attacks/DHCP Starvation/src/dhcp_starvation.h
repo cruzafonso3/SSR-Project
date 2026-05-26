@@ -9,6 +9,8 @@ void dhcp_stop();
 bool dhcp_is_running();
 void dhcp_step();
 int dhcp_get_reconnect_count();
+int dhcp_get_consecutive_failures();
+bool dhcp_is_pool_full();
 String dhcp_get_current_ip();
 String dhcp_get_current_mac();
 String dhcp_get_original_mac();

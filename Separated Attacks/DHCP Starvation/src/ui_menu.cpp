@@ -11,6 +11,7 @@ enum Page {
     PAGE_MAIN,
     PAGE_MESSAGE,
     PAGE_STATUS,
+    PAGE_ACTIVE,
     PAGE_SETTINGS,
     PAGE_EDIT_STRING,
     PAGE_EDIT_INT,
@@ -72,6 +73,9 @@ static void rebuild_status() {
     add(String(" RUNNING: ") + (dhcp_is_running() ? "YES" : "NO"));
     snprintf(buf, sizeof(buf), " RECONNECTS: %d", dhcp_get_reconnect_count());
     add(buf);
+    snprintf(buf, sizeof(buf), " FAILS(CONS): %d", dhcp_get_consecutive_failures());
+    add(buf);
+    add(String(" POOL FULL?: ") + (dhcp_is_pool_full() ? "YES" : "no"));
     snprintf(buf, sizeof(buf), " COOLDOWN: %d ms", dhcp_get_cooldown());
     add(buf);
 
@@ -166,7 +170,7 @@ static void action_start() {
         }
     }
     dhcp_start();
-    msg_temp("Starvation ON", nullptr, nullptr, 1500);
+    s_page = PAGE_ACTIVE;
     Serial.println("[Menu] Starvation started");
 }
 
@@ -237,6 +241,14 @@ void ui_menu_update() {
                     case 5: s_cursor = 0; s_scroll = 0; s_page = PAGE_SETTINGS; break;
                     case 6: config_save(); msg_temp("Config saved", nullptr, nullptr, 1500); break;
                 }
+            }
+            break;
+        }
+
+        case PAGE_ACTIVE: {
+            if (evt == EVT_SELECT || evt == EVT_BACK) {
+                dhcp_stop();
+                s_cursor = 0; s_scroll = 0; s_page = PAGE_MAIN;
             }
             break;
         }
@@ -344,6 +356,23 @@ void ui_menu_render() {
         if (s_scroll > 0) g_display.fillTriangle(124, 1, 120, 5, 128, 5, SSD1306_WHITE);
         if (s_scroll + max_vis < MAIN_COUNT) g_display.fillTriangle(124, 62, 120, 58, 128, 58, SSD1306_WHITE);
 
+        displaySendBuffer();
+        return;
+    }
+
+    if (s_page == PAGE_ACTIVE) {
+        displayClearBuffer();
+        displayDrawStr(0, 8, "=== STARVATION ===");
+        displayDrawLine(0, 10, 127, 10);
+
+        char buf[22];
+        snprintf(buf, sizeof(buf), "RECON: %d", dhcp_get_reconnect_count());
+        displayDrawStr(4, 22, buf);
+        displayDrawStr(4, 32, ("IP: " + (dhcp_get_current_ip().length() > 0 ? dhcp_get_current_ip() : "N/A")).c_str());
+        snprintf(buf, sizeof(buf), "FAIL: %d", dhcp_get_consecutive_failures());
+        displayDrawStr(4, 42, buf);
+        displayDrawStr(4, 52, dhcp_is_pool_full() ? "FULL: YES (10+ fails)" : "FULL: no");
+        displayDrawStr(4, 62, "SEL/BACK: Stop");
         displaySendBuffer();
         return;
     }
