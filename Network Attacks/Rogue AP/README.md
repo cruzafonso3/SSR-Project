@@ -66,8 +66,10 @@ Access at `http://192.168.4.1/admin`:
 The portal served depends on whether a target password was provided:
 - **With password** → ZON ISP Verify (realistic phish for WPA2)
 <img width="403" height="652" alt="image" src="https://github.com/user-attachments/assets/f606ff33-d648-47a2-bc3d-c4ba80d14f6d" />
+
 - **No password (open)** → Free WiFi Register
 <img width="407" height="643" alt="image" src="https://github.com/user-attachments/assets/f9df437f-4f9e-431e-9392-0777527148e7" />
+
 Custom HTML pages can be uploaded via the admin panel and selected in Config.
 
 ## Build
