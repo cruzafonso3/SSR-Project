@@ -268,7 +268,7 @@ A build version hash (`__DATE__ __TIME__` djb2 hash) is stored in NVS. Every ref
 ### 6.2 Build and Flash
 
 ```bash
-cd "DHCP Starvation"
+cd "Network Attacks/DHCP Starvation"
 pio run
 pio run --target upload
 ```
