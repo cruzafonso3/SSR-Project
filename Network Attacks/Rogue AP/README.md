@@ -16,7 +16,7 @@ The ESP32 boots its own Wi-Fi network:
 | Password | `password123` |
 | IP | `192.168.4.1` |
 
-Connect your laptop to this network and open `http://192.168.4.1/admin` to access the admin panel.
+Connect to this network and open `http://192.168.4.1/admin` to access the admin panel.
 
 ### Phase 2 — Target Selection
 
@@ -32,8 +32,7 @@ The ESP32:
 1. Shuts down the admin AP
 2. Creates a new AP **cloning the target's SSID and channel**
 3. If a password was provided → WPA2-protected clone; otherwise open network
-4. **DNS hijack** activates — all DNS queries resolve to `192.168.4.1`
-5. **Captive portal** serves phishing pages to steal credentials
+4. **Captive portal** serves phishing pages to steal credentials
 
 When a victim connects and tries to browse, they get a fake login/registration page. Submitted credentials are saved to SPIFFS and viewable in the admin panel.
 
@@ -97,13 +96,6 @@ All defaults in `src/config.h`:
 | `/ap_config.json` | Attack profile (page text, auto-stop settings, custom HTML selection) |
 | `/custom/*.html` | Uploaded custom captive portal pages |
 
-## DNS Hijack
-
-All DNS queries (any domain) return `192.168.4.1`. This ensures victims are always directed to the captive portal regardless of what URL they try to visit. Handles all common OS detection URLs:
-- Android: `generate_204`
-- Apple/iOS: `hotspot-detect.html`
-- Windows: `ncsi.txt`
-- Chrome: `gen_204`
 
 ## Routes
 
