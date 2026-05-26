@@ -12,8 +12,6 @@ struct AppConfig {
     char target_mac[18];
     char gateway_ip[16];
     char gateway_mac[18];
-    char dns_spoof_ip[16];
-    char dns_spoof_domain[64];
     int arp_cooldown_ms;
 };
 

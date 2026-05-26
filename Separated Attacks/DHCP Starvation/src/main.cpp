@@ -8,44 +8,35 @@ extern "C" {
     }
 }
 
+#include "config.h"
 #include "wifi_manager.h"
-#include "dhcp_glutton.h"
+#include "dhcp_starvation.h"
 #include "serial_cli.h"
-
-static DHCPGlutton* s_glutton = nullptr;
+#include "display_manager.h"
+#include "buttons.h"
+#include "ui_menu.h"
 
 static void app_task(void* pvParameters) {
     while (1) {
         serial_cli_task();
-        if (s_glutton && s_glutton->is_running()) {
-            s_glutton->step();
-        }
+        dhcp_step();
+        ui_menu_update();
+        ui_menu_render();
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
 void setup() {
+    config_init();
     wifi_manager_init();
+    dhcp_init();
     serial_cli_init();
+    display_manager_init();
+    ui_menu_init();
+    buttons_init();
     xTaskCreatePinnedToCore(app_task, "app_task", 4096, NULL, 1, NULL, 0);
 }
 
 void loop() {
     vTaskDelay(pdMS_TO_TICKS(1000));
-}
-
-DHCPGlutton* get_glutton() {
-    return s_glutton;
-}
-
-void create_glutton(const char* ssid, const char* pass, int cooldown) {
-    if (s_glutton) delete s_glutton;
-    s_glutton = new DHCPGlutton(ssid, pass, cooldown);
-}
-
-void destroy_glutton() {
-    if (s_glutton) {
-        delete s_glutton;
-        s_glutton = nullptr;
-    }
 }

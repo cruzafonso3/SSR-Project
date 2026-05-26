@@ -1,24 +1,16 @@
 #include "serial_cli.h"
 #include "wifi_manager.h"
-#include "dhcp_glutton.h"
-#include <Preferences.h>
+#include "dhcp_starvation.h"
+#include "config.h"
 
 static String s_input;
-static Preferences prefs;
-
-static char s_ssid[32] = "";
-static char s_password[64] = "";
-static int s_cooldown = 1000;
 
 static void print_help() {
-    Serial.println("\n========================================");
-    Serial.println("  DHCP Starvation - Educational Demo");
-    Serial.println("  FOR AUTHORIZED LAB USE ONLY");
-    Serial.println("========================================\n");
+    Serial.println("\n=== DHCP Starvation ===");
     Serial.println("Commands:");
     Serial.println("  set_ssid <name>          Set SSID");
     Serial.println("  set_pass <password>      Set password");
-    Serial.println("  set_cooldown <ms>        Delay between reconnects (500-10000, default 1000)");
+    Serial.println("  set_cooldown <ms>        Delay between reconnects (500-10000)");
     Serial.println("  connect                  Connect to WiFi");
     Serial.println("  start                    Begin DHCP starvation");
     Serial.println("  stop                     Stop + restore MAC");
@@ -29,91 +21,62 @@ static void print_help() {
     Serial.println("  help                     Show this help");
 }
 
-static void save_config() {
-    prefs.begin("dhcpstarve", false);
-    prefs.putString("ssid", s_ssid);
-    prefs.putString("pass", s_password);
-    prefs.putInt("cooldown", s_cooldown);
-    prefs.end();
-    Serial.println("Saved");
-}
-
-static void load_config() {
-    prefs.begin("dhcpstarve", true);
-    String s = prefs.getString("ssid", "");
-    strncpy(s_ssid, s.c_str(), sizeof(s_ssid) - 1);
-    s = prefs.getString("pass", "");
-    strncpy(s_password, s.c_str(), sizeof(s_password) - 1);
-    s_cooldown = prefs.getInt("cooldown", 1000);
-    prefs.end();
-    Serial.println("Loaded");
-}
-
-static void reset_config() {
-    strcpy(s_ssid, "test");
-    strcpy(s_password, "12345678");
-    s_cooldown = 1000;
-    Serial.println("Reset to defaults");
-}
-
 static void handle_command(const String& cmd) {
     if (cmd.startsWith("set_ssid ")) {
-        strncpy(s_ssid, cmd.substring(9).c_str(), sizeof(s_ssid) - 1);
-        Serial.printf("SSID: %s\n", s_ssid);
+        strncpy(g_config.ssid, cmd.substring(9).c_str(), sizeof(g_config.ssid) - 1);
+        Serial.printf("SSID: %s\n", g_config.ssid);
     } else if (cmd.startsWith("set_pass ")) {
-        strncpy(s_password, cmd.substring(9).c_str(), sizeof(s_password) - 1);
+        strncpy(g_config.password, cmd.substring(9).c_str(), sizeof(g_config.password) - 1);
         Serial.println("Password set");
     } else if (cmd.startsWith("set_cooldown ")) {
-        s_cooldown = cmd.substring(13).toInt();
-        if (s_cooldown < 500) s_cooldown = 500;
-        if (s_cooldown > 10000) s_cooldown = 10000;
-        Serial.printf("Cooldown: %d ms\n", s_cooldown);
+        g_config.cooldown_ms = cmd.substring(13).toInt();
+        if (g_config.cooldown_ms < 500) g_config.cooldown_ms = 500;
+        if (g_config.cooldown_ms > 10000) g_config.cooldown_ms = 10000;
+        Serial.printf("Cooldown: %d ms\n", g_config.cooldown_ms);
     } else if (cmd == "connect") {
-        if (strlen(s_ssid) == 0) {
+        if (strlen(g_config.ssid) == 0) {
             Serial.println("Error: SSID not set");
             return;
         }
-        wifi_manager_connect(s_ssid, s_password);
+        wifi_manager_connect(g_config.ssid, g_config.password);
     } else if (cmd == "start") {
-        if (strlen(s_ssid) == 0) {
+        if (strlen(g_config.ssid) == 0) {
             Serial.println("Error: SSID not set");
             return;
         }
         if (!wifi_manager_is_connected()) {
             Serial.println("[DHCP] Auto-connecting...");
-            if (!wifi_manager_connect(s_ssid, s_password)) {
+            if (!wifi_manager_connect(g_config.ssid, g_config.password)) {
                 Serial.println("[DHCP] Connect failed");
                 return;
             }
         }
-        destroy_glutton();
-        create_glutton(s_ssid, s_password, s_cooldown);
-        get_glutton()->start();
+        dhcp_start();
     } else if (cmd == "stop") {
-        DHCPGlutton* g = get_glutton();
-        if (g) g->stop();
-        destroy_glutton();
+        dhcp_stop();
     } else if (cmd == "status") {
         Serial.println("--- Status ---");
-        Serial.printf("SSID: %s\n", s_ssid);
-        Serial.printf("WiFi: %s\n", wifi_manager_is_connected() ? "Connected" : "Disconnected");
-        Serial.printf("Cooldown: %d ms\n", s_cooldown);
-        DHCPGlutton* g = get_glutton();
-        if (g && g->is_running()) {
+        Serial.printf("SSID: %s\n", g_config.ssid);
+        Serial.printf("WiFi: %s\n", wifi_manager_is_connected() ? "UP" : "DOWN");
+        Serial.printf("Cooldown: %d ms\n", g_config.cooldown_ms);
+        if (dhcp_is_running()) {
             Serial.printf("State: RUNNING\n");
-            Serial.printf("Reconnects: %d\n", g->get_reconnect_count());
-            Serial.printf("Current IP: %s\n", g->get_current_ip().c_str());
-            Serial.printf("Current MAC: %s\n", g->get_current_mac_str().c_str());
+            Serial.printf("Reconnects: %d\n", dhcp_get_reconnect_count());
+            Serial.printf("Current IP: %s\n", dhcp_get_current_ip().c_str());
+            Serial.printf("Current MAC: %s\n", dhcp_get_current_mac().c_str());
         } else {
-            Serial.printf("State: Stopped\n");
-            Serial.printf("ESP32 MAC: %s\n", wifi_manager_get_mac_str().c_str());
+            Serial.printf("State: STOPPED\n");
+            Serial.printf("ESP32 MAC: %s\n", dhcp_get_original_mac().c_str());
         }
     } else if (cmd == "save") {
-        save_config();
+        config_save();
+        Serial.println("Saved");
     } else if (cmd == "load") {
-        load_config();
+        config_load();
+        Serial.println("Loaded");
     } else if (cmd == "reset") {
-        reset_config();
+        config_reset();
+        Serial.println("Reset to defaults");
     } else if (cmd == "help") {
         print_help();
     } else {
@@ -124,7 +87,6 @@ static void handle_command(const String& cmd) {
 void serial_cli_init() {
     Serial.begin(115200);
     delay(1000);
-    load_config();
     print_help();
     Serial.print("\n> ");
 }

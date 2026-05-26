@@ -3,7 +3,6 @@
 #include "wifi_manager.h"
 #include "arp_engine.h"
 #include "packet_forwarder.h"
-#include "dns_spoof.h"
 
 static String s_input;
 
@@ -15,15 +14,13 @@ static void print_help() {
     Serial.println("  set_target_mac <mac>     Set target MAC");
     Serial.println("  set_gateway_ip <ip>      Set gateway IP");
     Serial.println("  set_gateway_mac <mac>    Set gateway MAC");
-    Serial.println("  set_dns_ip <ip>          Set DNS spoof IP");
-    Serial.println("  set_dns_domain <dom>     Set DNS domain (* for all)");
     Serial.println("  set_arp_cooldown <ms>    Set ARP interval (100-10000ms)");
     Serial.println("  connect                  Connect WiFi");
     Serial.println("  disconnect               Disconnect WiFi");
     Serial.println("  start                    Start ARP + forward");
     Serial.println("  stop                     Stop all");
-    Serial.println("  dns_start                Enable DNS spoof");
-    Serial.println("  dns_stop                 Disable DNS spoof");
+    Serial.println("  forward_start            Start forwarding only");
+    Serial.println("  forward_stop             Stop forwarding only");
     Serial.println("  status                   Show status");
     Serial.println("  save                     Save config");
     Serial.println("  load                     Load config");
@@ -49,14 +46,6 @@ static void handle_command(const String& cmd) {
     } else if (cmd.startsWith("set_gateway_mac ")) {
         strncpy(g_config.gateway_mac, cmd.substring(16).c_str(), sizeof(g_config.gateway_mac)-1);
         Serial.printf("Gateway MAC: %s\n", g_config.gateway_mac);
-    } else if (cmd.startsWith("set_dns_ip ")) {
-        strncpy(g_config.dns_spoof_ip, cmd.substring(11).c_str(), sizeof(g_config.dns_spoof_ip)-1);
-        dns_spoof_set_ip(g_config.dns_spoof_ip);
-        Serial.printf("DNS IP: %s\n", g_config.dns_spoof_ip);
-    } else if (cmd.startsWith("set_dns_domain ")) {
-        strncpy(g_config.dns_spoof_domain, cmd.substring(15).c_str(), sizeof(g_config.dns_spoof_domain)-1);
-        dns_spoof_set_domain(g_config.dns_spoof_domain);
-        Serial.printf("DNS Domain: %s\n", g_config.dns_spoof_domain);
     } else if (cmd.startsWith("set_arp_cooldown ")) {
         g_config.arp_cooldown_ms = cmd.substring(17).toInt();
         if (g_config.arp_cooldown_ms < 100) g_config.arp_cooldown_ms = 100;
@@ -71,7 +60,6 @@ static void handle_command(const String& cmd) {
     } else if (cmd == "disconnect") {
         wifi_manager_disconnect();
         arp_engine_stop();
-        dns_spoof_stop();
         packet_forwarder_stop();
     } else if (cmd == "start") {
         if (!wifi_manager_is_connected()) {
@@ -80,28 +68,30 @@ static void handle_command(const String& cmd) {
         }
         arp_engine_start();
         packet_forwarder_start();
-        Serial.println("Started. Use 'dns_start' for DNS spoof");
-    } else if (cmd == "dns_start") {
-        dns_spoof_start();
-        Serial.println("[DNS] ON");
-    } else if (cmd == "dns_stop") {
-        dns_spoof_stop();
-        Serial.println("[DNS] OFF");
+        Serial.println("Started");
+    } else if (cmd == "forward_start") {
+        if (!wifi_manager_is_connected()) {
+            Serial.println("Error: Not connected");
+            return;
+        }
+        packet_forwarder_start();
+        Serial.println("[Forward] Started");
+    } else if (cmd == "forward_stop") {
+        packet_forwarder_stop();
+        Serial.println("[Forward] Stopped");
     } else if (cmd == "stop") {
         arp_engine_stop();
-        dns_spoof_stop();
         packet_forwarder_stop();
     } else if (cmd == "status") {
-        Serial.printf("WiFi: %s  ARP: %s  Fwd: %s  DNS: %s\n",
+        Serial.printf("WiFi: %s  ARP: %s  Fwd: %s\n",
             wifi_manager_is_connected() ? "UP" : "DOWN",
             arp_engine_is_running() ? "ON" : "OFF",
-            packet_forwarder_is_running() ? "ON" : "OFF",
-            dns_spoof_is_running() ? "ON" : "OFF");
+            packet_forwarder_is_running() ? "ON" : "OFF");
         Serial.printf("ARP Cooldown: %d ms\n", g_config.arp_cooldown_ms);
         Serial.printf("Target: %s  GW: %s\n", g_config.target_ip, g_config.gateway_ip);
-        uint32_t cap, fwd, drop, dns;
-        packet_forwarder_get_stats(cap, fwd, drop, dns);
-        Serial.printf("Stats: Cap=%u Fwd=%u Drop=%u DNS=%u\n", cap, fwd, drop, dns);
+        uint32_t cap, fwd, drop;
+        packet_forwarder_get_stats(cap, fwd, drop);
+        Serial.printf("Stats: Cap=%u Fwd=%u Drop=%u\n", cap, fwd, drop);
     } else if (cmd == "save") {
         config_save();
         Serial.println("Saved");

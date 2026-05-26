@@ -1,6 +1,7 @@
 #include "arp_engine.h"
 #include "config.h"
 #include "wifi_manager.h"
+#include "packet_forwarder.h"
 #include "arp_poisoner.hpp"
 
 static bool s_running = false;
@@ -25,6 +26,7 @@ void arp_engine_start() {
     s_poisoner_victim = new ARP_poisoner();
     s_poisoner_gateway = new ARP_poisoner(g_target_ip_bin);
 
+    promiscuous_ref_add();
     s_running = true;
     s_last_arp = millis();
     Serial.println("[ARP] ON");
@@ -32,6 +34,7 @@ void arp_engine_start() {
 
 void arp_engine_stop() {
     s_running = false;
+    promiscuous_ref_remove();
     if (s_poisoner_victim) { delete s_poisoner_victim; s_poisoner_victim = nullptr; }
     if (s_poisoner_gateway) { delete s_poisoner_gateway; s_poisoner_gateway = nullptr; }
     Serial.println("[ARP] OFF");
